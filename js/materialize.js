@@ -2486,6 +2486,8 @@ $jscomp.polyfill = function (e, r, p, m) {
           } while (newFocusedIndex < this.dropdownEl.children.length && newFocusedIndex >= 0);
 
           if (foundNewIndex) {
+            // Remove active class from old element
+            if (this.focusedIndex >= 0) this.dropdownEl.children[this.focusedIndex].classList.remove('active');
             this.focusedIndex = newFocusedIndex;
             this._focusFocusedItem();
           }
@@ -2561,7 +2563,9 @@ $jscomp.polyfill = function (e, r, p, m) {
         if (!!this.options.container) {
           $(this.options.container).append(this.dropdownEl);
         } else if (containerEl) {
-          $(containerEl).append(this.dropdownEl);
+          if (!containerEl.contains(this.dropdownEl)) {
+            $(containerEl).append(this.dropdownEl);
+          }
         } else {
           this.$el.after(this.dropdownEl);
         }
@@ -2583,7 +2587,12 @@ $jscomp.polyfill = function (e, r, p, m) {
       key: "_focusFocusedItem",
       value: function _focusFocusedItem() {
         if (this.focusedIndex >= 0 && this.focusedIndex < this.dropdownEl.children.length && this.options.autoFocus) {
-          this.dropdownEl.children[this.focusedIndex].focus();
+          this.dropdownEl.children[this.focusedIndex].classList.add('active');
+          this.dropdownEl.children[this.focusedIndex].scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'nearest'
+          });
         }
       }
     }, {
@@ -2617,6 +2626,10 @@ $jscomp.polyfill = function (e, r, p, m) {
         if (!alignments.top) {
           if (alignments.bottom) {
             verticalAlignment = 'bottom';
+
+            if (!this.options.coverTrigger) {
+              idealYPos -= triggerBRect.height;
+            }
           } else {
             this.isScrollable = true;
 
@@ -4536,6 +4549,8 @@ $jscomp.polyfill = function (e, r, p, m) {
       value: function _setTooltipContent(tooltipContentEl) {
         tooltipContentEl.textContent = this.options.text;
         if (!!this.options.html) {
+          // Warn when using html
+          console.warn('The html option is deprecated and will be removed in the future. See https://github.com/materializecss/materialize/pull/49');
           $(tooltipContentEl).append(this.options.html);
         }
         if (!!this.options.unsafeHTML) {
@@ -5450,6 +5465,8 @@ $jscomp.polyfill = function (e, r, p, m) {
        */
       this.options = $.extend({}, Toast.defaults, options);
       this.htmlMessage = this.options.html;
+      // Warn when using html
+      if (!!this.options.html) console.warn('The html option is deprecated and will be removed in the future. See https://github.com/materializecss/materialize/pull/49');
       // If the new unsafeHTML is used, prefer that
       if (!!this.options.unsafeHTML) {
         this.htmlMessage = this.options.unsafeHTML;
@@ -6897,7 +6914,7 @@ $jscomp.polyfill = function (e, r, p, m) {
         this.el.setAttribute('data-target', this.container.id);
 
         // Initialize dropdown
-        var dropdownOptions = $.extend(Autocomplete.defaults.dropdownOptions, this.options.dropdownOptions);
+        var dropdownOptions = $.extend({}, Autocomplete.defaults.dropdownOptions, this.options.dropdownOptions);
         var userOnItemClick = dropdownOptions.onItemClick;
 
         // Ensuring the selectOption call when user passes custom onItemClick function to dropdown
@@ -7010,6 +7027,13 @@ $jscomp.polyfill = function (e, r, p, m) {
           if (this.activeIndex >= 0) {
             this.$active = $(this.container).children('li').eq(this.activeIndex);
             this.$active.addClass('active');
+
+            // Focus selected
+            this.container.children[this.activeIndex].scrollIntoView({
+              behavior: 'smooth',
+              block: 'nearest',
+              inline: 'nearest'
+            });
           }
         }
       }
@@ -7153,7 +7177,7 @@ $jscomp.polyfill = function (e, r, p, m) {
           var item = document.createElement('li');
           if (!!_entry.data) {
             var img = document.createElement('img');
-            img.classList.add("right", "circle");
+            img.classList.add('right', 'circle');
             img.src = _entry.data;
             item.appendChild(img);
           }
@@ -7167,7 +7191,7 @@ $jscomp.polyfill = function (e, r, p, m) {
             if (!!parts[1]) {
               var highlight = document.createElement('span');
               highlight.textContent = parts[1];
-              highlight.classList.add("highlight");
+              highlight.classList.add('highlight');
               s.appendChild(highlight);
               s.appendChild(document.createTextNode(parts[2]));
             }
@@ -9270,6 +9294,8 @@ $jscomp.polyfill = function (e, r, p, m) {
         this.cancelBtn.innerHTML = this.options.i18n.cancel;
 
         if (this.options.container) {
+          var optEl = this.options.container;
+          this.options.container = optEl instanceof HTMLElement ? optEl : document.querySelector(optEl);
           this.$modalEl.appendTo(this.options.container);
         } else {
           this.$modalEl.insertBefore(this.el);
@@ -10205,7 +10231,8 @@ $jscomp.polyfill = function (e, r, p, m) {
         this.modalEl.id = 'modal-' + this.id;
 
         // Append popover to input by default
-        var containerEl = document.querySelector(this.options.container);
+        var optEl = this.options.container;
+        var containerEl = optEl instanceof HTMLElement ? optEl : document.querySelector(optEl);
         if (this.options.container && !!containerEl) {
           this.$modalEl.appendTo(containerEl);
         } else {
@@ -11825,6 +11852,7 @@ $jscomp.polyfill = function (e, r, p, m) {
         // Calculating screen
         var windowWidth = window.innerWidth;
         var windowHeight = window.innerHeight;
+        var scrollBarWidth = windowWidth - document.documentElement.clientWidth;
         var centerX = windowWidth / 2;
         var centerY = windowHeight / 2;
         var isLeft = originLeft <= centerX;
@@ -11859,7 +11887,7 @@ $jscomp.polyfill = function (e, r, p, m) {
         // Setting tap target
         var tapTargetWrapperCssObj = {};
         tapTargetWrapperCssObj.top = isTop ? tapTargetTop + 'px' : '';
-        tapTargetWrapperCssObj.right = isRight ? windowWidth - tapTargetLeft - tapTargetWidth + 'px' : '';
+        tapTargetWrapperCssObj.right = isRight ? windowWidth - tapTargetLeft - tapTargetWidth - scrollBarWidth + 'px' : '';
         tapTargetWrapperCssObj.bottom = isBottom ? windowHeight - tapTargetTop - tapTargetHeight + 'px' : '';
         tapTargetWrapperCssObj.left = isLeft ? tapTargetLeft + 'px' : '';
         tapTargetWrapperCssObj.position = tapTargetPosition;
@@ -12306,8 +12334,9 @@ $jscomp.polyfill = function (e, r, p, m) {
 
         // add icons
         var iconUrl = option.getAttribute('data-icon');
+        var classes = option.getAttribute('class');
         if (!!iconUrl) {
-          var imgEl = $("<img alt=\"\" src=\"" + iconUrl + "\">");
+          var imgEl = $("<img alt=\"\" class=\"" + classes + "\" src=\"" + iconUrl + "\">");
           liEl.prepend(imgEl);
         }
 
@@ -12357,7 +12386,7 @@ $jscomp.polyfill = function (e, r, p, m) {
 
         options.each(function (el) {
           if ($(el).prop('selected')) {
-            var text = $(el).text();
+            var text = $(el).text().trim();
             values.push(text);
           }
         });
